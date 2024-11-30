@@ -166,3 +166,4 @@ cython_debug/
 /misc/images
 /reply_history.json
 tmp*
+*.json
