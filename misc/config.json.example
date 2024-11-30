@@ -1,0 +1,36 @@
+{
+  "telegram": {
+    "token": "xxxxx:x-xxxxx"
+  },
+  "openai": {
+    "api_key": "sk-xxxxxxxxxxxx",
+    "base_url": "https://chatapi.xxxxx.xyz/v1/",
+    "moderation_key": "sk-proj-xxxx-xxx",
+    "moderation_url": "https://xxxxxxxx/v1/moderations"
+  },
+  "google": {
+    "api_key": "xxxxxx"
+  },
+  "models": {
+    "online_search": "gpt-4o-all",
+    "default": "grok-beta",
+    "fallback": "command-r-plus-08-2024",
+    "long_chat": "command-r-plus-08-2024",
+    "no_restrict":"grok-beta",
+    "check": "re-4o-mini",
+    "translate": "gpt-4o-mini",
+    "sight": "gemini-1.5-pro-002",
+    "compress": "gpt-4o-mini",
+    "math":"gemini-exp-1114",
+    "code":"Qwen/Qwen2.5-Coder-32B-Instruct"
+  },
+  "endpoints": {
+    "sdxl": "https://xxxxxxx/pic",
+    "improve_prompt": "https://xxxxxxxx.workers.dev/conv",
+    "image_gen": "https://xxxxxxxxx.xyz/pic?key=114514"
+  },
+  "chat_settings": {
+    "chat_threshold": 16,
+    "expire_minutes": 10
+  }
+}
