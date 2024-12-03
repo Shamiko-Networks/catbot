@@ -28,7 +28,7 @@ async def cat_math_chat(user_message, user_name,context=None, update=None, chat_
         print("Moderation check failed")  
         return f"不要发这种奇怪的东西喵~",False
     rp_math = math_chat(user_message)
-    user_message = f'"{user_name}"让你计算了"{user_message}",你的计算过程和结果是:"{rp_math}",请猫猫尽可能用自己的语气详细地复述一遍计算结果并说出你的感想'
+    user_message = f'"{user_name}"让你计算了"{user_message}",你的计算过程和结果是:"{rp_math}", 你已经说出了计算过程和结果，现在请猫猫尽可能用自己的语气总结计算经过，并说出你的感想'
     try:
         await context.bot.send_message(
             chat_id=chat_id,  # 替换为目标聊天ID
@@ -43,7 +43,7 @@ async def cat_code_chat(user_message, user_name,context=None, update=None, chat_
         print("Moderation check failed")  
         return f"不要发这种奇怪的东西喵~",False
     rp_code = code_chat(user_message)
-    user_message = f'"{user_name}"让你编程了"{user_message}",你的编程结果是:"{rp_code}",请猫猫尽可能用自己的语气详细地复述一遍编程结果并说出你的感想'
+    user_message = f'"{user_name}"让你编程了"{user_message}",你的编程结果是:"{rp_code}",你已经说出了编程结果,现在请猫猫尽可能用自己的语气总结编程结果，并说出你的感想'
     try:
         await context.bot.send_message(
             chat_id=chat_id,  # 替换为目标聊天ID

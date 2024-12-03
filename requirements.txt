@@ -1,0 +1,5 @@
+requests~=2.31.0
+python-telegram-bot~=20.5
+openai
+Pillow~=10.0.0
+# google-generativeai
