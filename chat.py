@@ -91,7 +91,7 @@ def math_chat(user_message):
             "content": rp
         }
     ]
-    rp = start_chat(msg_prompt2, 0.2, "gemini-1.5-flash-8b-001",512)
+    rp = start_chat(msg_prompt2, 0.2, ai_config.compress_model,512)
     print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.math_model}\n--------\n')
     return rp
 

@@ -27,13 +27,15 @@ async def cat_math_chat(user_message, user_name,context=None, update=None, chat_
     if check_moderation(user_message):
         print("Moderation check failed")  
         return f"不要发这种奇怪的东西喵~",False
+    thinking_msg = await context.bot.send_message(chat_id, "🤓 猫猫正在思考中...") # 发送思考消息
     rp_math = math_chat(user_message)
     user_message = f'"{user_name}"让你计算了"{user_message}",你的计算过程和结果是:"{rp_math}", 你已经说出了计算过程和结果，现在请猫猫尽可能用自己的语气总结计算经过，并说出你的感想'
     try:
-        await context.bot.send_message(
-            chat_id=chat_id,  # 替换为目标聊天ID
-            text=rp_math
+        await context.bot.delete_message(
+            chat_id=chat_id,
+            message_id=thinking_msg.message_id
         )
+        await context.bot.send_message(chat_id, rp_math) # 发送思考消息
     except Exception as e:
         print(f"发送失败: {e}")
     return build_chat(user_message, True, ai_config.long_chat_model)
@@ -59,13 +61,15 @@ async def cat_online_search_chat(user_message, user_name,context=None, update=No
     if check_moderation(user_message):
         print("Moderation check failed")  
         return f"不要发这种奇怪的东西喵~",False
+    search_ctx_msg = await context.bot.send_message(chat_id, "🔍 猫猫正在上网搜索中...") # 发送搜索消息
     rp_online = online_search_chat(user_message)
     print(f'-------\nreq:{user_message}\nRp:{rp_online}\nmodel:onlineModel\n--------\n')
     user_message = f'"{user_name}"让你上网搜索了"{user_message}",搜索结果是:"{rp_online}",请猫猫尽可能用自己的语气详细地复述一遍搜索结果并说出你的感想'
     try:
         # 发送消息，指定 parse_mode 为 MarkdownV2
-        await context.bot.send_message(
+        await context.bot.edit_message_text(
             chat_id=chat_id,  # 替换为目标聊天ID
+            message_id=search_ctx_msg.message_id,
             text=format_news_summary(rp_online),
             parse_mode='MarkdownV2'
         )
@@ -77,7 +81,14 @@ async def cat_draw_image_chat(user_message, user_name,context=None, update=None,
     if check_moderation(user_message):
         print("Moderation check failed")    
         return f"不要发这种奇怪的东西喵~",False
+    draw_ctx_msg=await context.bot.send_message(chat_id, "🎨 猫猫正在思考绘画内容中...") # 发送绘画消息
     img,aft_prompt = await generate_image(user_message)
+    await context.bot.edit_message_text(
+        chat_id=chat_id,
+        message_id=draw_ctx_msg.message_id,
+        text=f"🎨 猫猫正在拿起画笔..."
+    )
+
     if not img:
         return f"绘画失败了",False
     if context and update and chat_id:
@@ -89,12 +100,17 @@ async def cat_draw_image_chat(user_message, user_name,context=None, update=None,
             # Send the generated image to the Telegram chat
             await context.bot.send_photo(
                 chat_id=chat_id, 
+               # text=f"{aft_prompt}",
                 reply_to_message_id=update.effective_message.id,
                 photo=imgbyte
             )
         except Exception as e:
             print(e)
             return f"绘画失败了",False
+    await context.bot.delete_message(
+        chat_id=chat_id,
+        message_id=draw_ctx_msg.message_id
+    )
     build_chat(f'{user_name}让你绘画了内容为"{aft_prompt}"的画,你完成了主人的任务,请你复述主人的绘画内容,并对内容作出评价', True, ai_config.long_chat_model)
    
 async def cat_chat(user_message, is_one=False, need_strict=True, user_name=None,context=None,update=None,chat_id=None):
@@ -108,13 +124,25 @@ async def cat_chat(user_message, is_one=False, need_strict=True, user_name=None,
     
     if len(user_message) > 4096:
         return "无法理解喵", False
-    
+    global_chat_ctx_message = await context.bot.send_message(chat_id, "🍙 猫猫已收到消息...") # 发送思考消息
+     
     if need_strict:
         chat_intention = check_chat(user_message)
+        await context.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=global_chat_ctx_message.message_id,
+            text="🍙 猫猫正在打字..."
+        )
     else:
         chat_intention = "NONE"
 
+
     if chat_intention == "BAN":
+        await context.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=global_chat_ctx_message.message_id,
+            text="🍙 猫猫似乎不太高兴..."
+        )
         rp, ok = build_chat(f"{user_name}对你说: {user_message}，但你很不喜欢他这么说话。",False,ai_config.no_restrict_model)
         return rp, False
 
@@ -124,23 +152,31 @@ async def cat_chat(user_message, is_one=False, need_strict=True, user_name=None,
 
     if chat_intention == "MATH":
         print("Math Mode")
-        return await cat_math_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
+        rp,ok =  await cat_math_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
     
     if chat_intention == "CODE":
         print("Code Mode")
-        return await cat_code_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
+        rp,ok =  await cat_code_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
 
     if chat_intention == "ONLINE" or contains_any_substring(user_message, substrings1):
         print("Online Mode")
-        return await cat_online_search_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
+        rp,ok =  await cat_online_search_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
     
     if chat_intention == "DRAW":
         print("Draw Mode")
-        return  await cat_draw_image_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
+        rp,ok =   await cat_draw_image_chat(user_message, user_name,context=context,update=update,chat_id=chat_id)
     
     if chat_intention == "NONE":
         print("Chat Mode")
-        return build_chat(f"{user_name}对你说: {user_message}", is_one,ai_config.default_model)
+        rp,ok =  build_chat(f"{user_name}对你说: {user_message}", is_one,ai_config.default_model)
+        try:
+            await context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=global_chat_ctx_message.message_id
+            )
+        except Exception as e:
+            print(f"发送失败: {e}")
+        return rp, ok
     
     
     print(f'chat_intention: {chat_intention}')
