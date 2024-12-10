@@ -73,14 +73,25 @@ def math_chat(user_message):
     msg_prompt = [
         {
             "role": "system",
-            "content": prompt.math_prompt
+            "content": prompt.reasoning_prompt
         },
         {
             "role": "user",
             "content": user_message
         }
     ]
-    rp = start_chat(msg_prompt, 0.2, ai_config.math_model)
+    rp = start_chat(msg_prompt, 0.2, ai_config.math_model, 8192)
+    msg_prompt2 = [
+        {
+            "role": "system",
+            "content": prompt.rea2
+        },
+        {
+            "role": "user",
+            "content": rp
+        }
+    ]
+    rp = start_chat(msg_prompt2, 0.2, "gemini-1.5-flash-8b-001",512)
     print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.math_model}\n--------\n')
     return rp
 
@@ -230,10 +241,10 @@ def build_chat(user_message, is_one=False,rmodel=ai_config.default_model):
         "content": user_message
     })
 
-    rp = start_chat(msg_prompt, 1, rmodel)
+    rp = start_chat(msg_prompt, 0.7, rmodel)
     if not rp or rp == "":
        print(f'use fallback\n')
-       rp = start_chat(msg_prompt, 1, ai_config.fallback_model)
+       rp = start_chat(msg_prompt, 0.7, ai_config.fallback_model)
  
     if not rp or rp == "":
         return "大脑宕机了喵~", False
