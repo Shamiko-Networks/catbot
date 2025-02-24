@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, filters, MessageHandler
 import openai
 import os
+import asyncio
 
 from datetime import datetime
 import prompt
@@ -16,12 +17,14 @@ from chat import *
 from tg import *
 from config import ai_config
 
-async def cat_math_chat(user_message, user_name,context=None, update=None, chat_id=None):
+async def cat_math_chat(user_message, user_name, context=None, update=None, chat_id=None):
     # gemini-exp-1114
     if check_moderation(user_message):
         print("Moderation check failed")  
-        return f"不要发这种奇怪的东西喵~",False
-    thinking_msg = await context.bot.send_message(chat_id, "🤓 猫猫正在思考中...") # 发送思考消息
+        return f"不要发这种奇怪的东西喵~", False
+    
+    thinking_msg = await context.bot.send_message(chat_id, "🤓 猫猫正在思考中...")  # 发送思考消息
+    
     msg_prompt = [
         {
             "role": "system",
@@ -32,54 +35,65 @@ async def cat_math_chat(user_message, user_name,context=None, update=None, chat_
             "content": user_message
         }
     ]
+    
     # openai 流对话
-    # start_stream_chat
-    rp_stream_math = openai.ChatCompletion.create(
+    rp_stream_math = openai.chat.completions.create(
         model=ai_config.math_model,
         messages=msg_prompt,
         temperature=0.6,
         stream=True
+
     )
-    # 处理流式响应，每当字数到达800字，bot输出一次
+    
+    # 处理流式响应
     rp_math = ""
     cot_temp = ""
+    
+    async def update_message(text):
+        try:       
+            text = cot_chat(remove_think_tags(text))
+            if text !='':
+                await context.bot.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=thinking_msg.message_id,
+                    text=text
+                )
+        except Exception as e:
+            print(f"发送失败: {e}")
+    
     for chunk in rp_stream_math:
-        if 'content' in chunk.choices[0].delta:
-            rp_math += chunk.choices[0].delta.content
-            cot_temp += chunk.choices[0].delta.content
-            if len(cot_temp) > 1024:
-                cot_summary = cot_chat(cot_temp)
-                if not cot_summary or cot_summary == "":
-                    continue
-                try:
-                    # 编辑thinking_msg
-                    await context.bot.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=thinking_msg.message_id,
-                        text=cot_summary
-                    )
-                except Exception as e:
-                    print(f"发送失败: {e}")
-                cot_temp = ""
-    # 发送最后的结果
-    print(f'-------\nreq:{user_message}\nRp:{rp_math}\nmodel:mathModel\n--------\n')
+        #print(chunk)
+        try:
+            if chunk.choices[0].delta.content is not None:
+                #print(chunk.choices[0].delta)
+                if getattr(chunk.choices[0].delta, 'reasoning_content', '') != '':
+                    if chunk.choices[0].delta.reasoning_content!= "":
+                        cot_temp += chunk.choices[0].delta.reasoning_content
+                else:
+                    rp_math += chunk.choices[0].delta.content
+                    cot_temp += chunk.choices[0].delta.content
+                
+                if len(cot_temp) > 2048:
+                    await update_message(cot_temp)
+                    cot_temp = ""  # Reset temporary content
+        except Exception as e:
+            print(f"发送失败3: {e}")
+    
+    # 最后发送完整结果
+    print(f'-------\nreq:{user_message}\nRp:{rp_math}\nmodel:{ai_config.math_model}\n--------\n')
     rp_math = remove_think_tags(rp_math)
-    try:
-        await context.bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=thinking_msg.message_id,
-            text=rp_math
-        )
-    except Exception as e:
-        print(f"发送失败: {e}")
+    
+    # 发送最终结果
+    await update_message(rp_math)
+    
     if rp_math == "":
-        return "想不出来喵~",False
+        return "想不出来喵~", False
+    
     user_message = f'"{user_name}"让你计算和思考了"{user_message}",大致计算过程和结果是:"{rp_math}", 你已经说出了大致计算过程和结果，现在请猫猫尽可能用自己的语气告诉他结果，说出你的思考感想'
-    try:
-        await context.bot.send_message(chat_id, rp_math) # 发送思考消息
-    except Exception as e:
-        print(f"发送失败: {e}")
+    
+    
     return build_chat(user_message, True, ai_config.long_chat_model)
+
 
 async def cat_code_chat(user_message, user_name,context=None, update=None, chat_id=None):
     if check_moderation(user_message):
@@ -378,13 +392,13 @@ async def cat_auto_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     
     chat_type = update.message.chat.type
-    if chat_type == 'private':
-        await context.bot.send_message(
-            chat_id=chat_id, 
-            reply_to_message_id=update.effective_message.id, 
-            text="该功能仅在群组内可用"
-        )
-        return
+    # if chat_type == 'private':
+    #     await context.bot.send_message(
+    #         chat_id=chat_id, 
+    #         reply_to_message_id=update.effective_message.id, 
+    #         text="该功能仅在群组内可用"
+    #     )
+    #     return
 
 
     user_name = get_name(update)
