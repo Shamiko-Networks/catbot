@@ -80,19 +80,21 @@ def math_chat(user_message):
             "content": user_message
         }
     ]
-    rp = start_chat(msg_prompt, 0.2, ai_config.math_model, 8192)
-    msg_prompt2 = [
-        {
-            "role": "system",
-            "content": prompt.rea2
-        },
-        {
-            "role": "user",
-            "content": rp
-        }
-    ]
-    rp = start_chat(msg_prompt2, 0.2, ai_config.compress_model,512)
-    print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.math_model}\n--------\n')
+    rp = start_chat(msg_prompt, 0.2, ai_config.math_model, 8192,180)
+    # if rp == "":
+    #     return ""
+    # msg_prompt2 = [
+    #     {
+    #         "role": "system",
+    #         "content": prompt.rea2
+    #     },
+    #     {
+    #         "role": "user",
+    #         "content": rp
+    #     }
+    # ]
+    # rp = start_chat(msg_prompt2, 0.2, ai_config.compress_model,512)
+    # print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.math_model}\n--------\n')
     return rp
 
 
@@ -203,19 +205,17 @@ async def img2chat(img_data_b64):
     if img_data_b64 is not None:
         rp = img_data_to_chat(img_data_b64)
         if rp == "sorry" or rp == "I apologize, but I am not able to describe the contents of this image as it appears to contain inappropriate and explicit content that I am not able to engage with. I must refrain from providing any details about this particular image.":
-            return "不要发奇怪的东西喵~"
+            return "不要发奇怪的东西喵~",None
         else:
             rpy, ok =  build_chat(
-                f'你看到了一张图片,内容是:{rp}, 这是你真实看见的内容，请猫猫复述内容并你用中文说出感想, 如果这张图片中有文字，请原封不动地告诉我有哪些文字，不要做出翻译或者修改。',
+                f'你看到了一张图片,内容是:{rp}, 这是你真实看见的内容，请猫猫复述内容并你用中文说出感想, 如果这张图片中有文字，请原封不动地告诉我有哪些文字，不要做出翻译或者修改',
                 False,
                 ai_config.default_model)
             if not ok:
-                rpy = "大脑宕机了喵~"
-            else:
-                log_history(rp, rpy)
-            return rpy
+                return "大脑宕机了喵",None
+            return rpy,rp
     else:
-        return "图片获取失败喵~"
+        return "图片获取失败喵~",None
 
 
 def build_chat(user_message, is_one=False,rmodel=ai_config.default_model):
@@ -241,7 +241,7 @@ def build_chat(user_message, is_one=False,rmodel=ai_config.default_model):
         "content": user_message
     })
 
-    rp = start_chat(msg_prompt, 0.7, rmodel)
+    rp = start_chat(msg_prompt, 0.4, rmodel)
     if not rp or rp == "":
        print(f'use fallback\n')
        rp = start_chat(msg_prompt, 0.7, ai_config.fallback_model)
@@ -256,14 +256,14 @@ def build_chat(user_message, is_one=False,rmodel=ai_config.default_model):
 
 
 
-def start_chat(msg_prompt, temp, model,max_tokens=1024):
+def start_chat(msg_prompt, temp, model,max_tokens=1024,timeout=90):
     try:
         # Create a Future to run the chat completion
         chat_completion = openai.chat.completions.create(
             messages=msg_prompt,
             temperature=temp, 
             model=model,
-            timeout=60, # Set 60 second timeout
+            timeout=timeout, # Set 60 second timeout
             max_tokens=max_tokens
         )
         # Get response
