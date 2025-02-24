@@ -69,32 +69,19 @@ def code_chat(user_message):
     return rp
 
 
-def math_chat(user_message):
+def cot_chat(user_message):
     msg_prompt = [
         {
             "role": "system",
-            "content": prompt.reasoning_prompt
+            "content": prompt.math_summary_prompt
         },
         {
             "role": "user",
             "content": user_message
         }
     ]
-    rp = start_chat(msg_prompt, 0.2, ai_config.math_model, 8192,180)
-    # if rp == "":
-    #     return ""
-    # msg_prompt2 = [
-    #     {
-    #         "role": "system",
-    #         "content": prompt.rea2
-    #     },
-    #     {
-    #         "role": "user",
-    #         "content": rp
-    #     }
-    # ]
-    # rp = start_chat(msg_prompt2, 0.2, ai_config.compress_model,512)
-    # print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.math_model}\n--------\n')
+    rp = start_chat(msg_prompt, 0.3, ai_config.compress_model)
+    print(f'-------\nreq:{user_message}\nRp:{rp}\nmodel:{ai_config.compress_model}\n--------\n')
     return rp
 
 
@@ -268,6 +255,27 @@ def start_chat(msg_prompt, temp, model,max_tokens=1024,timeout=90):
         )
         # Get response
         rp = chat_completion.choices[0].message.content
+        return rp
+    except Exception as e:
+        print(f"Chat completion failed or timed out: {e}")
+        return ""
+    
+def start_stream_chat(msg_prompt, temp, model,max_tokens=1024,timeout=90):
+    try:
+        # Create a Future to run the chat completion
+        chat_completion = openai.chat.completions.create(
+            messages=msg_prompt,
+            temperature=temp, 
+            model=model,
+            timeout=timeout, # Set 60 second timeout
+            max_tokens=max_tokens,
+            stream=True
+        )
+        # Get response
+        rp = ""
+        for chunk in chat_completion:
+            if 'content' in chunk.choices[0].delta:
+                rp += chunk.choices[0].delta.content
         return rp
     except Exception as e:
         print(f"Chat completion failed or timed out: {e}")
